@@ -19,21 +19,11 @@
 class TelnetServer
 {
 public:
-    TelnetServer() : serverSocket(-1), running(false)
-    {
-    }
+    TelnetServer() : serverSocket(-1), running(false) {}
 
     bool start(int port)
     {
-        //
         // Create a socket.
-        // Arguments:
-        //     domain: AF_INET = IPv4
-        //     type: SOCK_STREAM = TCP
-        //     protocol: 0 = let system choose
-        // Returns:
-        //     file descriptor, used for subsequent socket operations
-        //
         serverSocket = socket(AF_INET, SOCK_STREAM, 0);
         if (serverSocket < 0)
         {
@@ -41,15 +31,7 @@ public:
             return false;
         }
 
-        //
         // Set socket options
-        // Arguments:
-        //     file descriptor returned by socket()
-        //     protocol level: SOL_SOCKET = socket level options
-        //     optname: SO_REUSEADDR = allows reuse of local addresses
-        //     optval: pointer to the value of the option (1 == true)
-        //     size of option value variable
-        //
         int opt = 1;
         if (setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
         {
@@ -65,13 +47,7 @@ public:
         serverAddr.sin_addr.s_addr = INADDR_ANY;  // Listen on all available interfaces
         serverAddr.sin_port = htons(port);  // Convert from host byte order to network byte order
 
-        //
         // Bind the socket to a local address and port number
-        // Arguments:
-        //   file descriptor
-        //   pointer to variable containing address info
-        //   size of address info struct
-        //
         if (bind(serverSocket, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) < 0)
         {
             // If failed, close socket and return error
@@ -177,14 +153,14 @@ private:
             struct sockaddr_in clientAddr;
             socklen_t clientAddrLen = sizeof(clientAddr);
 
-            // Non-blocking accept
+            // non-blocking accept
             int clientSocket = accept(serverSocket, (struct sockaddr*)&clientAddr, &clientAddrLen);
 
             if (clientSocket < 0)
             {
                 if (errno == EAGAIN || errno == EWOULDBLOCK)
                 {
-                    // No pending connections, sleep a bit
+                    // No pending connections so sleep a bit
                     std::this_thread::sleep_for(std::chrono::milliseconds(100));
                     continue;
                 }
@@ -195,14 +171,14 @@ private:
                 }
             }
 
-            // Set client socket to non-blocking mode
+            // Set to non-blocking mode
             if (!SocketUtils::setNonBlocking(clientSocket))
             {
                 close(clientSocket);
                 continue;
             }
 
-            // Create a client handler for this connection
+            // Create client handler
             std::lock_guard<std::mutex> lock(mutex);
             clients.push_back(std::make_shared<TelnetClientHandler>(clientSocket));
 
@@ -217,7 +193,7 @@ private:
     {
         while (running)
         {
-            // Clean up finished games periodically
+            // Clean up finished games
             GameManager::getInstance().cleanupGames();
 
             // Check for disconnected clients

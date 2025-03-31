@@ -13,16 +13,16 @@ private:
     int gameId;
     std::shared_ptr<User> blackPlayer;
     std::shared_ptr<User> whitePlayer;
-    std::vector<std::vector<char>> board; // 15x15 board
+    std::vector<std::vector<char>> board;
     StoneColor currentTurn;
     GameStatus status;
     std::string winner;
-    std::vector<int> observers; // Socket IDs of observers
+    std::vector<int> observers;
     time_t gameStartTime;
     time_t lastMoveTime;
-    int timeLimit; // in seconds - move this to before blackTimeUsed
-    int blackTimeUsed; // in seconds
-    int whiteTimeUsed; // in seconds
+    int timeLimit;
+    int blackTimeUsed;
+    int whiteTimeUsed;
 
 public:
     Game(int id, std::shared_ptr<User> black, std::shared_ptr<User> white, int timeLimit = 600)
@@ -59,8 +59,8 @@ public:
     void removeObserver(int socket);
     bool isObserving(int socket) const;
     std::vector<int> getObservers() const;
-    // Add to your Game.h in the public section:
     bool isPositionEmpty(int row, int col) const;
+
     // Getters
     int getId() const { return gameId; }
     std::string getBoardString() const;
@@ -71,18 +71,18 @@ public:
     std::shared_ptr<User> getWhitePlayer() const { return whitePlayer; }
 };
 
-// GameManager singleton to manage all games
+// GameManager to manage all games
 class GameManager {
 private:
     std::unordered_map<int, std::shared_ptr<Game>> games;
     int nextGameId;
     std::mutex gamesMutex;
 
-    // Private constructor for singleton
+    // Private constructor
     GameManager() : nextGameId(1) {}
 
 public:
-    // Get the singleton instance
+    // Get the instance
     static GameManager& getInstance() {
         static GameManager instance;
         return instance;
@@ -91,13 +91,8 @@ public:
     // Create a new game
     int createGame(std::shared_ptr<User> blackPlayer, std::shared_ptr<User> whitePlayer, int timeLimit = 600);
 
-    // Get a game by ID
     std::shared_ptr<Game> getGame(int gameId);
-
-    // Get all games
     std::vector<std::shared_ptr<Game>> getAllGames();
-
-    // Remove finished games
     void cleanupGames();
 };
 
@@ -114,7 +109,7 @@ void Game::playerDisconnected(std::shared_ptr<User> player) {
     }
 }
 
-// Call this periodically to check if time has expired
+// Check if time has expired periodically
 bool Game::checkTimeExpired() {
     if (status != GameStatus::PLAYING) {
         return false;
@@ -154,7 +149,6 @@ bool Game::makeMove(std::shared_ptr<User> player, int row, int col) {
     bool isBlack = (player->getUsername() == blackPlayer->getUsername());
     bool isWhite = (player->getUsername() == whitePlayer->getUsername());
 
-    // If player is neither black nor white, they shouldn't make a move
     if (!isBlack && !isWhite) {
         return false;
     }
@@ -174,26 +168,25 @@ bool Game::makeMove(std::shared_ptr<User> player, int row, int col) {
     time_t now = time(nullptr);
     int elapsed = static_cast<int>(now - lastMoveTime);
 
+    // Check for time limit
     if (currentTurn == StoneColor::BLACK) {
         blackTimeUsed += elapsed;
-        // Check for time limit
         if (blackTimeUsed > timeLimit) {
             endGame(whitePlayer->getUsername());
             return false;
         }
     } else {
         whiteTimeUsed += elapsed;
-        // Check for time limit
         if (whiteTimeUsed > timeLimit) {
             endGame(blackPlayer->getUsername());
             return false;
         }
     }
 
-    // Place the stone on the board
+    // Place stone
     board[row][col] = (currentTurn == StoneColor::BLACK) ? 'X' : 'O';
 
-    // Check for win condition
+    // Check for win
     if (checkWin(row, col)) {
         if (currentTurn == StoneColor::BLACK) {
             endGame(blackPlayer->getUsername());
@@ -211,19 +204,21 @@ bool Game::makeMove(std::shared_ptr<User> player, int row, int col) {
 
     return true;
 }
-// Helper method to check if a position is empty
+
+// Function to check if a position is empty
 bool Game::isPositionEmpty(int row, int col) const {
     if (row < 0 || row >= 15 || col < 0 || col >= 15) {
         return false;
     }
     return board[row][col] == '.';
 }
-bool Game::checkWin(int row, int col) {
+
+bool Game::checkWin(int row, int col) { // Also used AI for this because I was a tiny bit confued with Gomuko rules
     char stone = board[row][col];
     const int directions[4][2] = {{0, 1}, {1, 0}, {1, 1}, {1, -1}}; // horizontal, vertical, diagonal \, diagonal /
 
     for (int d = 0; d < 4; d++) {
-        int count = 1; // Start with the stone just placed
+        int count = 1;
 
         // Check in positive direction
         for (int i = 1; i < 5; i++) {
@@ -324,17 +319,14 @@ std::string Game::getBoardString() const {
         result += "\n";
     }
 
-    // Add turn information
     result += "\nCurrent turn: " + std::string(currentTurn == StoneColor::BLACK ? "Black" : "White");
 
-    // Add time information
     result += "\nBlack time used: " + std::to_string(blackTimeUsed) + " seconds";
     result += "\nWhite time used: " + std::to_string(whiteTimeUsed) + " seconds";
 
     return result;
 }
 
-// GameManager methods implementation
 int GameManager::createGame(std::shared_ptr<User> blackPlayer, std::shared_ptr<User> whitePlayer, int timeLimit) {
     std::lock_guard<std::mutex> lock(gamesMutex);
 

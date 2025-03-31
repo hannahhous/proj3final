@@ -28,7 +28,7 @@ public:
         return true;
     }
 
-    // Send data to socket with error handling
+    // Send data to socket
     static bool sendData(int sock, const std::string& data)
     {
         // Check for valid socket
@@ -46,13 +46,11 @@ public:
             if (n == -1) {
                 if (errno == EAGAIN || errno == EWOULDBLOCK)
                 {
-                    // Would block, try again later
                     std::this_thread::sleep_for(std::chrono::milliseconds(10));
                     continue;
                 }
                 else
                 {
-                    // Log the error but don't use perror here
                     return false;
                 }
             }
