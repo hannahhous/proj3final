@@ -1,5 +1,6 @@
 #ifndef TELNETCLIENTHANDLER_H
 #define TELNETCLIENTHANDLER_H
+
 #include <thread>
 #include <string>
 #include <sstream>
@@ -10,8 +11,7 @@
 #include "Message.h"
 #include <regex>
 #include <iostream>
-#include <fstream>  // Add this line to include ofstream
-
+#include <fstream>
 
 class TelnetClientHandler {
 private:

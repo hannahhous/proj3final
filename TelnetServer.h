@@ -1,7 +1,6 @@
 #ifndef TELNETSERVER_H
 #define TELNETSERVER_H
 
-#include <atomic>
 #include <cstdio>
 #include <iostream>
 #include <ostream>
@@ -13,14 +12,9 @@
 #include <vector>
 #include <mutex>
 
-
 #include "SocketUtils.h"
 #include "TelnetClientHandler.h"
-//#include "User.h"
 #include "Game.h"
-
-
-
 
 class TelnetServer
 {
