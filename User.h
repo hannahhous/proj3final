@@ -7,6 +7,8 @@
 #include <memory>
 #include <atomic>
 #include <mutex>
+#include <unordered_map>
+
 #include <fstream>
 #include <filesystem>
 #include <iostream>
@@ -323,7 +325,7 @@ void loadUsers() {
         std::string line;
         std::string username, password, info;
         int wins = 0, losses = 0;
-        float rating = 1500.0f;
+        float rating [[maybe_unused]] = 1500.0f;    // User AI to find this compiler flag help !!!
         bool isQuiet = false;
         std::vector<std::string> blockedUsers;
         bool inBlockedSection = false;

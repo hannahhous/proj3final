@@ -187,8 +187,7 @@ private:
 
         // Send welcome message
         sendMessage("Welcome to Gomoku Server!");
-        sendMessage("Type 'help' or '?' for a list of commands.");
-
+        sendMessage(showHelp());
         // Main command loop
         while (running)
         {

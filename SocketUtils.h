@@ -1,12 +1,15 @@
-//
-// Created by Conrad on 3/27/25.
-//
+
 
 #ifndef SOCKETUTILS_H
 #define SOCKETUTILS_H
 
 #include <sys/fcntl.h>
 #include <poll.h>
+#include <sys/fcntl.h>
+#include <poll.h>
+#include <cstring>  // Add this for memset
+#include <thread>   // For std::this_thread
+#include <chrono>   // For std::chrono
 
 class SocketUtils
 {

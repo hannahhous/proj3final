@@ -18,16 +18,12 @@ private:
     StoneColor currentTurn;
     GameStatus status;
     std::string winner;
-
-    // For observer functionality
     std::vector<int> observers; // Socket IDs of observers
-
-    // Time tracking
     time_t gameStartTime;
     time_t lastMoveTime;
+    int timeLimit; // in seconds - move this to before blackTimeUsed
     int blackTimeUsed; // in seconds
     int whiteTimeUsed; // in seconds
-    int timeLimit; // in seconds
 
 public:
     Game(int id, std::shared_ptr<User> black, std::shared_ptr<User> white, int timeLimit = 600)
