@@ -48,8 +48,6 @@ quiet, nonquiet (5)
 
 listmail (5)
                                  __5___                 ________
-                - it wasn't clear in the instructions to me whether mail should be saved
-                for eahc user when the server stop so I assumed no
 
 
 mail/readmail (5)
