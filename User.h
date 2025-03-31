@@ -251,12 +251,10 @@ bool saveUsers() {
 
     // Try to acquire the lock with a timeout
     if (!usersMutex.try_lock()) {
-        std::cerr << "Failed to acquire lock in saveUsers - mutex is held by another thread" << std::endl;
         return false;
     }
 
     // We now have the lock
-    std::cout << "Lock acquired in saveUsers" << std::endl;
 
     try {
         // Open file for writing
@@ -425,7 +423,6 @@ bool updateUserInfo(const std::string& username, const std::string& info) {
     }
 
     user->setInfo(info);
-    std::cout << "calling save users" << std::endl;
     saveUsers(); // Save after updating info
     return true;
 }
@@ -437,7 +434,6 @@ bool changePassword(const std::string& username, const std::string& newPassword)
     }
 
     user->setPassword(newPassword);
-        std::cout << "calling save users" << std::endl;
 
     saveUsers(); // Save after changing password
     return true;

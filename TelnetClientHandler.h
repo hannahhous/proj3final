@@ -818,20 +818,6 @@ std::string sendMail(const std::string& recipient, const std::string& title) {
             }
             return loginUser(tokens[1], tokens[2]);
         }
-        else if (cmd == "testsave") {
-            std::cout << "Testing save functionality" << std::endl;
-            std::ofstream testFile("/tmp/test_save.txt");
-            if (testFile.is_open()) {
-                testFile << "Test save at " << time(nullptr) << std::endl;
-                testFile.close();
-                std::cout << "Test file written successfully" << std::endl;
-                return "Test save successful. Check for test_save.txt";
-            } else {
-                std::cout << "Failed to open test file" << std::endl;
-                return "Test save failed. Check server permissions.";
-            }
-            testFile.close();
-        }
         else if (cmd == "quiet") {
             return setQuietMode(true);
         }
