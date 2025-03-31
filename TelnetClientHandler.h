@@ -460,8 +460,8 @@ private:
         for (int observerSocket : game->getObservers()) {
             SocketUtils::sendData(observerSocket, moveMsg + "\r\n\n" + boardStr + "\r\n");
         }
-
-        return boardStr + "\n" + winMsg;
+        return winMsg;
+        //return boardStr + "\n" + winMsg;
     }
 
     SocketUtils::sendData(opponent->getSocket(), moveMsg + "\r\n\n" + boardStr + "\r\n");
