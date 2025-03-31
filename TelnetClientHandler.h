@@ -224,86 +224,6 @@ private:
             clientSocket = -1;
         }
     }
-/*!!!
-    // List all current games
-    std::string listCurrentGames() {
-        auto games = GameManager::getInstance().getAllGames();
-        if (games.empty()) {
-            return "No games in progress.";
-        }
-
-        std::string result = "Current games:\n";
-        for (const auto& game : games) {
-            result += std::to_string(game->getId()) + ": " +
-                      game->getBlackPlayer()->getUsername() + " (Black) vs " +
-                      game->getWhitePlayer()->getUsername() + " (White)";
-
-            if (game->getStatus() == GameStatus::FINISHED) {
-                result += " [FINISHED - Winner: " + game->getWinner() + "]";
-            } else {
-            result += std::string(" [") + (game->getCurrentTurn() == StoneColor::BLACK ? "Black" : "White") + " to move]";
-            }
-
-            result += "\n";
-        }
-
-        return result;
-    }
-
-    // Initiate a match with another player
-    std::string initiateMatch(const std::string& opponentName, const std::string& colorStr, int timeLimit) {
-        if (username == "guest") {
-            return "Guests cannot play games. Please register an account.";
-        }
-
-        // Prevent matching with yourself
-        if (username == opponentName) {
-            return "You cannot play against yourself.";
-        }
-
-        if (colorStr != "b" && colorStr != "w") {
-            return "Color must be 'b' for black or 'w' for white.";
-        }
-
-        auto currentUser = UserManager::getInstance().getUserByUsername(username);
-        if (currentUser->isInGame()) {
-            return "You are already in a game.";
-        }
-
-        auto opponent = UserManager::getInstance().getUserByUsername(opponentName);
-        if (!opponent) {
-            return "User not found: " + opponentName;
-        }
-
-        if (opponent->isInGame()) {
-            return opponent->getUsername() + " is already in a game.";
-        }
-
-        if (opponent->getSocket() == -1) {
-            return opponent->getUsername() + " is not online.";
-        }
-
-        std::shared_ptr<User> blackPlayer = (colorStr == "b") ? currentUser : opponent;
-        std::shared_ptr<User> whitePlayer = (colorStr == "b") ? opponent : currentUser;
-
-        // Create the game
-        int gameId = GameManager::getInstance().createGame(blackPlayer, whitePlayer, timeLimit);
-
-        // Get the game board
-        auto game = GameManager::getInstance().getGame(gameId);
-        std::string gameBoard = game->getBoardString();
-
-        std::string gameStartMsg = "Game " + std::to_string(gameId) + " started: " +
-                                   blackPlayer->getUsername() + " (Black) vs " +
-                                   whitePlayer->getUsername() + " (White)";
-
-        // Send notification and board to opponent
-        SocketUtils::sendData(opponent->getSocket(), gameStartMsg + "\r\n\n" + gameBoard + "\r\n");
-
-        // Return notification and board to current user
-        return gameStartMsg + "\n\n" + gameBoard;
-    }
-*/
 
     std::string listCurrentGames() {
         auto games = GameManager::getInstance().getAllGames();
@@ -361,7 +281,7 @@ private:
         return opponent->getUsername() + " is not online.";
     }
 
-    // Generate a unique invitation key
+    // Generate invitation key
     std::string invitationKey = username + "_" + opponentName;
     std::string reverseKey = opponentName + "_" + username;
 
@@ -369,7 +289,7 @@ private:
     if (pendingInvitations.find(reverseKey) != pendingInvitations.end()) {
         auto invitation = pendingInvitations[reverseKey];
 
-        // Colors must match (if inviter wanted black, responder must want white and vice versa)
+        // Colors must match
         bool colorsAgree = (invitation.colorStr == "b" && colorStr == "w") ||
                            (invitation.colorStr == "w" && colorStr == "b");
 
@@ -379,7 +299,6 @@ private:
                    (invitation.colorStr == "b" ? "Black" : "White") + ".";
         }
 
-        // Determine which player is black and which is white
         std::shared_ptr<User> blackPlayer, whitePlayer;
         if (colorStr == "b") {
             blackPlayer = currentUser;
@@ -389,10 +308,10 @@ private:
             whitePlayer = currentUser;
         }
 
-        // Use the time limit from the invitation if one was specified
+        // Use the time limit from the invitation
         int actualTimeLimit = (timeLimit != 600) ? timeLimit : invitation.timeLimit;
 
-        // Remove the invitation since we're creating the game
+        // Remove the invitation
         pendingInvitations.erase(reverseKey);
 
         // Create the game
@@ -402,7 +321,6 @@ private:
         auto game = GameManager::getInstance().getGame(gameId);
         std::string gameBoard = game->getBoardString();
 
-        // Prepare notification message
         std::string gameStartMsg = "Game " + std::to_string(gameId) + " started: " +
                                 blackPlayer->getUsername() + " (Black) vs " +
                                 whitePlayer->getUsername() + " (White)";
@@ -599,7 +517,6 @@ private:
             SocketUtils::sendData(observerSocket, moveMsg + "\r\n\n" + boardStr + "\r\n");
         }
         return winMsg;
-        //return boardStr + "\n" + winMsg;
     }
 
         SocketUtils::sendData(opponent->getSocket(), moveMsg + "\r\n\n" + boardStr + "\r\n");

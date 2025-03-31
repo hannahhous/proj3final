@@ -196,7 +196,6 @@ bool Game::makeMove(std::shared_ptr<User> player, int row, int col) {
         return true; // Move was successful, even though it ended the game
     }
 
-    // Only update turn if game isn't over
     if (status == GameStatus::PLAYING) {
         currentTurn = (currentTurn == StoneColor::BLACK) ? StoneColor::WHITE : StoneColor::BLACK;
         lastMoveTime = now;
