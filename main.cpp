@@ -1,25 +1,38 @@
 #include <iostream>
+#include <signal.h>
 
-// TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
-// click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
-int main() {
-    // TIP Press <shortcut actionId="RenameElement"/> when your caret is at the
-    // <b>lang</b> variable name to see how CLion can help you rename it.
-    auto lang = "C++";
-    std::cout << "Hello and welcome to " << lang << "!\n";
+#include "TelnetServer.h"
 
-    for (int i = 1; i <= 5; i++) {
-        // TIP Press <shortcut actionId="Debug"/> to start debugging your code.
-        // We have set one <icon src="AllIcons.Debugger.Db_set_breakpoint"/>
-        // breakpoint for you, but you can always add more by pressing
-        // <shortcut actionId="ToggleLineBreakpoint"/>.
-        std::cout << "i = " << i << std::endl;
-    }
+volatile sig_atomic_t shouldExit = 0;
 
-    return 0;
+void signalHandler(int signal)
+{
+    shouldExit = 1;
 }
 
-// TIP See CLion help at <a
-// href="https://www.jetbrains.com/help/clion/">jetbrains.com/help/clion/</a>.
-//  Also, you can try interactive lessons for CLion by selecting
-//  'Help | Learn IDE Features' from the main menu.
+int main()
+{
+    // Set up signal handlers
+    signal(SIGINT, signalHandler);
+    signal(SIGTERM, signalHandler);
+
+    int port = 8023;
+
+    TelnetServer server;
+    if (!server.start(port))
+    {
+        std::cerr << "Failed to start server" << std::endl;
+        return 1;
+    }
+
+    std::cout << "Server running. Press Ctrl+C to stop." << std::endl;
+
+    // Main loop
+    while (!shouldExit)
+    {
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
+
+    std::cout << "Shutting down..." << std::endl;
+    server.stop();    return 0;
+}
