@@ -162,10 +162,7 @@ public:
         users[username] = std::make_shared<User>(username, password, socket);
         socketToUser[socket] = username;
 
-
-        // Save user data to disk
-        std::cout << "calling save users" << std::endl;
-
+        // Save changes to disk
         saveUsers();
 
         return true;
@@ -248,17 +245,29 @@ public:
 
    // Replace the saveUsers() and loadUsers() functions in User.h with these improved versions
 
-void saveUsers() {
-    std::lock_guard<std::mutex> lock(usersMutex);
+    // Replace your saveUsers method in User.h with this version
+bool saveUsers() {
+    std::cout << "Attempting to save users data..." << std::endl;
+
+    // Try to acquire the lock with a timeout
+    if (!usersMutex.try_lock()) {
+        std::cerr << "Failed to acquire lock in saveUsers - mutex is held by another thread" << std::endl;
+        return false;
+    }
+
+    // We now have the lock
+    std::cout << "Lock acquired in saveUsers" << std::endl;
 
     try {
         // Open file for writing
         std::ofstream file("users_data.txt");
         if (!file.is_open()) {
             std::cerr << "Failed to open users_data.txt for writing" << std::endl;
-            return;
+            usersMutex.unlock();
+            return false;
         }
 
+        int userCount = 0;
         // Write each user (except guest)
         for (const auto& pair : users) {
             const auto& user = pair.second;
@@ -268,6 +277,7 @@ void saveUsers() {
                 continue;
             }
 
+            userCount++;
             // Write user data in a simple format
             file << "USER_BEGIN\n";
             file << "username=" << user->getUsername() << "\n";
@@ -288,11 +298,16 @@ void saveUsers() {
             file << "USER_END\n";
         }
 
+        file.flush();
         file.close();
-        std::cout << "User data saved successfully to users_data.txt" << std::endl;
+        std::cout << "User data saved successfully: " << userCount << " users written" << std::endl;
+        usersMutex.unlock();
+        return true;
     }
     catch (const std::exception& e) {
         std::cerr << "Error saving users: " << e.what() << std::endl;
+        usersMutex.unlock();
+        return false;
     }
 }
 
@@ -327,11 +342,10 @@ void loadUsers() {
                 continue;
             }
             else if (line == "USER_END") {
-                if (inUserSection && !username.empty()) {
+                if (inUserSection) {
                     // Create user and add to map
                     auto user = std::make_shared<User>(username, password, -1);
                     user->setInfo(info);
-                    user->setQuietMode(isQuiet);
 
                     // Set wins and losses manually
                     for (int i = 0; i < wins; i++) {
@@ -340,6 +354,8 @@ void loadUsers() {
                     for (int i = 0; i < losses; i++) {
                         user->addLoss();
                     }
+
+                    user->setQuietMode(isQuiet);
 
                     // Add blocked users
                     for (const auto& blockedUser : blockedUsers) {
@@ -364,9 +380,7 @@ void loadUsers() {
                 }
 
                 if (inBlockedSection) {
-                    if (!line.empty()) {
-                        blockedUsers.push_back(line);
-                    }
+                    blockedUsers.push_back(line);
                 }
                 else {
                     // Parse key-value pairs

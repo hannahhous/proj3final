@@ -5,7 +5,7 @@
 #include <sstream>
 #include <vector>
 #include <algorithm>
-#include "UserManager.h"
+#include "User.h"
 #include "Game.h"
 #include "Message.h"
 #include <regex>
@@ -1068,6 +1068,7 @@ std::string sendMail(const std::string& recipient, const std::string& title) {
 
         if (UserManager::getInstance().registerUser(username, password, clientSocket)) {
             this->username = username;
+            // UserManager will now automatically save users after registration
             return "Registration successful. You are now logged in as " + username + ".";
         } else {
             return "Registration failed. Username already exists or is invalid.";
