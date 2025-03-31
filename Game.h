@@ -4,7 +4,7 @@
 #include <vector>
 #include <string>
 #include <memory>
-#include "UserManager.h"
+#include "User.h"
 
 enum class StoneColor { BLACK, WHITE };
 enum class GameStatus { WAITING, PLAYING, FINISHED };
