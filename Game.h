@@ -3,7 +3,6 @@
 
 #include <vector>
 #include <string>
-#include <memory>
 #include "User.h"
 
 enum class StoneColor { BLACK, WHITE };
