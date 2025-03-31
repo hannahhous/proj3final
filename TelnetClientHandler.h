@@ -1123,6 +1123,8 @@ std::string sendMail(const std::string& recipient, const std::string& title) {
         }
 
         currentUser->setPassword(newPassword);
+        UserManager::getInstance().saveUsers(); // Explicitly save after password change
+
         return "Your password has been changed.";
     }
 
