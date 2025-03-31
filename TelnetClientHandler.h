@@ -18,29 +18,17 @@ private:
     int clientSocket;
     std::atomic<bool> running;
     std::thread handlerThread;
-    std::string username; // To track logged-in user
+    std::string username;
 
 public:
-    // Add to TelnetClientHandler.h in the public section
-    bool isLoggedIn() const
-    {
-        return !username.empty();
-    }
+    bool isLoggedIn() const {return !username.empty();}
+    std::string getUsername() const{return username;}
+    bool isConnected() const{return running && clientSocket >= 0;}
 
-    // Add this getter for the username
-    std::string getUsername() const
-    {
-        return username;
-    }
-    // Add to TelnetClientHandler.h in the public section
-    bool isConnected() const
-    {
-        return running && clientSocket >= 0;
-    }
     TelnetClientHandler(int socket)
         : clientSocket(socket), running(true), username("")
     {
-        // Start the handler thread
+        // Start thread
         handlerThread = std::thread(&TelnetClientHandler::handleClient, this);
         handlerThread.detach();
     }
@@ -62,24 +50,23 @@ public:
         if (running) {
             running = false;
 
-            // Handle game abandonment if the user is in a game
+            // game abandonment if the user is in a game
             if (!username.empty()) {
                 auto currentUser = UserManager::getInstance().getUserByUsername(username);
                 if (currentUser && currentUser->isInGame()) {
                     int gameId = currentUser->getGameId();
                     auto game = GameManager::getInstance().getGame(gameId);
                     if (game) {
-                        // Handle player disconnection in the game
+                        // player disconnection in the game
                         handlePlayerDisconnection(game, currentUser);
                     }
                 }
 
-                // Log out user
+                // log out user
                 UserManager::getInstance().logoutUser(clientSocket);
                 username = "";
             }
 
-            // Close the socket if it's valid
             if (clientSocket >= 0) {
                 close(clientSocket);
                 clientSocket = -1;
@@ -87,7 +74,6 @@ public:
         }
     }
 
-    // Helper method to handle player disconnection during a game
     void handlePlayerDisconnection(std::shared_ptr<Game> game, std::shared_ptr<User> player) {
         // Get the opponent
         std::shared_ptr<User> opponent;
@@ -97,7 +83,7 @@ public:
             opponent = game->getBlackPlayer();
         }
 
-        // Notify the opponent and observers that this player disconnected
+        // Notify the opponent and observers
         std::string disconnectMsg = player->getUsername() + " has disconnected. " +
                                     opponent->getUsername() + " wins by default.";
 
@@ -105,7 +91,6 @@ public:
             SocketUtils::sendData(opponent->getSocket(), disconnectMsg + "\r\n");
         }
 
-        // Notify observers
         for (int observerSocket : game->getObservers()) {
             SocketUtils::sendData(observerSocket, disconnectMsg + "\r\n");
         }
@@ -115,9 +100,6 @@ public:
     }
 
 private:
-    // Process a command and return the response
-
-
     // Login as a user
     std::string loginUser(const std::string& username, const std::string& password)
     {
@@ -134,6 +116,7 @@ private:
             return "Login failed. Invalid username or password.";
         }
     }
+
     // Help command
     std::string showHelp()
     {
@@ -177,10 +160,6 @@ private:
         return "Online users: \n- guest";
     }
 
-
-
-
-
     void handleClient()
     {
         int timeout_ms = 10000;
@@ -188,6 +167,7 @@ private:
         // Send welcome message
         sendMessage("Welcome to Gomoku Server!");
         sendMessage(showHelp());
+
         // Main command loop
         while (running)
         {
@@ -207,7 +187,7 @@ private:
                 }
             }
 
-            // Extract the first line
+            // Get first line
             size_t pos = result.find("\r\n");
             if (pos != std::string::npos)
             {
@@ -216,12 +196,11 @@ private:
 
             if (result.empty())
             {
-                // Socket might be closed or timed out
                 std::this_thread::sleep_for(std::chrono::milliseconds(100));
                 continue;
             }
 
-            // Process the command
+            // Process command
             std::string response = processCommand(result);
             sendMessage(response);
 
@@ -232,7 +211,7 @@ private:
                 break;
             }
         }
-        // Make sure socket is closed when thread ends
+        // Make sure socket is closed
         if (clientSocket >= 0) {
             close(clientSocket);
             clientSocket = -1;
@@ -240,186 +219,185 @@ private:
     }
 
     // List all current games
-std::string listCurrentGames() {
-    auto games = GameManager::getInstance().getAllGames();
-    if (games.empty()) {
-        return "No games in progress.";
+    std::string listCurrentGames() {
+        auto games = GameManager::getInstance().getAllGames();
+        if (games.empty()) {
+            return "No games in progress.";
+        }
+
+        std::string result = "Current games:\n";
+        for (const auto& game : games) {
+            result += std::to_string(game->getId()) + ": " +
+                      game->getBlackPlayer()->getUsername() + " (Black) vs " +
+                      game->getWhitePlayer()->getUsername() + " (White)";
+
+            if (game->getStatus() == GameStatus::FINISHED) {
+                result += " [FINISHED - Winner: " + game->getWinner() + "]";
+            } else {
+            result += std::string(" [") + (game->getCurrentTurn() == StoneColor::BLACK ? "Black" : "White") + " to move]";
+            }
+
+            result += "\n";
+        }
+
+        return result;
     }
 
-    std::string result = "Current games:\n";
-    for (const auto& game : games) {
-        result += std::to_string(game->getId()) + ": " +
-                  game->getBlackPlayer()->getUsername() + " (Black) vs " +
-                  game->getWhitePlayer()->getUsername() + " (White)";
+    // Initiate a match with another player
+    std::string initiateMatch(const std::string& opponentName, const std::string& colorStr, int timeLimit) {
+        if (username == "guest") {
+            return "Guests cannot play games. Please register an account.";
+        }
 
-        if (game->getStatus() == GameStatus::FINISHED) {
-            result += " [FINISHED - Winner: " + game->getWinner() + "]";
+        // Prevent matching with yourself
+        if (username == opponentName) {
+            return "You cannot play against yourself.";
+        }
+
+        if (colorStr != "b" && colorStr != "w") {
+            return "Color must be 'b' for black or 'w' for white.";
+        }
+
+        auto currentUser = UserManager::getInstance().getUserByUsername(username);
+        if (currentUser->isInGame()) {
+            return "You are already in a game.";
+        }
+
+        auto opponent = UserManager::getInstance().getUserByUsername(opponentName);
+        if (!opponent) {
+            return "User not found: " + opponentName;
+        }
+
+        if (opponent->isInGame()) {
+            return opponent->getUsername() + " is already in a game.";
+        }
+
+        if (opponent->getSocket() == -1) {
+            return opponent->getUsername() + " is not online.";
+        }
+
+        std::shared_ptr<User> blackPlayer = (colorStr == "b") ? currentUser : opponent;
+        std::shared_ptr<User> whitePlayer = (colorStr == "b") ? opponent : currentUser;
+
+        // Create the game
+        int gameId = GameManager::getInstance().createGame(blackPlayer, whitePlayer, timeLimit);
+
+        // Get the game board
+        auto game = GameManager::getInstance().getGame(gameId);
+        std::string gameBoard = game->getBoardString();
+
+        std::string gameStartMsg = "Game " + std::to_string(gameId) + " started: " +
+                                   blackPlayer->getUsername() + " (Black) vs " +
+                                   whitePlayer->getUsername() + " (White)";
+
+        // Send notification and board to opponent
+        SocketUtils::sendData(opponent->getSocket(), gameStartMsg + "\r\n\n" + gameBoard + "\r\n");
+
+        // Return notification and board to current user
+        return gameStartMsg + "\n\n" + gameBoard;
+    }
+
+    // Resign from the current game
+    std::string resignGame() {
+        auto currentUser = UserManager::getInstance().getUserByUsername(username);
+        if (!currentUser->isInGame()) {
+            return "You are not in a game.";
+        }
+
+        int gameId = currentUser->getGameId();
+        auto game = GameManager::getInstance().getGame(gameId);
+        if (!game) {
+            currentUser->setPlaying(false);
+            currentUser->setGameId(-1);
+            return "Error: Game not found.";
+        }
+
+        game->resign(currentUser);
+
+        // Send notification to opponent
+        std::shared_ptr<User> opponent;
+        if (game->getBlackPlayer()->getUsername() == username) {
+            opponent = game->getWhitePlayer();
         } else {
-result += std::string(" [") + (game->getCurrentTurn() == StoneColor::BLACK ? "Black" : "White") + " to move]";        }
+            opponent = game->getBlackPlayer();
+        }
 
-        result += "\n";
+        std::string resignMsg = username + " has resigned the game.";
+        SocketUtils::sendData(opponent->getSocket(), resignMsg + "\r\n");
+
+        // Notify observers
+        for (int observerSocket : game->getObservers()) {
+            SocketUtils::sendData(observerSocket, resignMsg + "\r\n");
+        }
+
+        return "You have resigned the game.";
     }
 
-    return result;
-}
+    // Refresh the current game board
+    std::string refreshGame() {
+        auto currentUser = UserManager::getInstance().getUserByUsername(username);
+        if (!currentUser->isInGame() && !currentUser->isUserObserving()) {
+            return "You are not in or observing a game.";
+        }
 
-// Initiate a match with another player
-// Initiate a match with another player
-std::string initiateMatch(const std::string& opponentName, const std::string& colorStr, int timeLimit) {
-    if (username == "guest") {
-        return "Guests cannot play games. Please register an account.";
+        int gameId = currentUser->getGameId();
+        auto game = GameManager::getInstance().getGame(gameId);
+        if (!game) {
+            currentUser->setPlaying(false);
+            currentUser->setObserving(false);
+            currentUser->setGameId(-1);
+            return "Error: Game not found.";
+        }
+
+        return game->getBoardString();
     }
 
-    // Prevent matching with yourself
-    if (username == opponentName) {
-        return "You cannot play against yourself.";
+    // Observe a game
+    std::string observeGame(int gameId) {
+        auto currentUser = UserManager::getInstance().getUserByUsername(username);
+        if (currentUser->isInGame()) {
+            return "You cannot observe while playing a game.";
+        }
+
+        auto game = GameManager::getInstance().getGame(gameId);
+        if (!game) {
+            return "Game not found: " + std::to_string(gameId);
+        }
+
+        // If already observing a different game, unobserve first
+        if (currentUser->isUserObserving()) {
+            auto oldGame = GameManager::getInstance().getGame(currentUser->getGameId());
+            if (oldGame) {
+                oldGame->removeObserver(clientSocket);
+            }
+        }
+
+        // Add as observer
+        game->addObserver(clientSocket);
+        currentUser->setObserving(true);
+        currentUser->setGameId(gameId);
+
+        return "You are now observing game " + std::to_string(gameId) + ".\n\n" + game->getBoardString();
     }
 
-    if (colorStr != "b" && colorStr != "w") {
-        return "Color must be 'b' for black or 'w' for white.";
-    }
+    // Stop observing a game
+    std::string unobserveGame() {
+        auto currentUser = UserManager::getInstance().getUserByUsername(username);
+        if (!currentUser->isUserObserving()) {
+            return "You are not observing any game.";
+        }
 
-    auto currentUser = UserManager::getInstance().getUserByUsername(username);
-    if (currentUser->isInGame()) {
-        return "You are already in a game.";
-    }
+        int gameId = currentUser->getGameId();
+        auto game = GameManager::getInstance().getGame(gameId);
+        if (game) {
+            game->removeObserver(clientSocket);
+        }
 
-    auto opponent = UserManager::getInstance().getUserByUsername(opponentName);
-    if (!opponent) {
-        return "User not found: " + opponentName;
-    }
-
-    if (opponent->isInGame()) {
-        return opponent->getUsername() + " is already in a game.";
-    }
-
-    if (opponent->getSocket() == -1) {
-        return opponent->getUsername() + " is not online.";
-    }
-
-    // Determine which player is black and which is white
-    std::shared_ptr<User> blackPlayer = (colorStr == "b") ? currentUser : opponent;
-    std::shared_ptr<User> whitePlayer = (colorStr == "b") ? opponent : currentUser;
-
-    // Create the game
-    int gameId = GameManager::getInstance().createGame(blackPlayer, whitePlayer, timeLimit);
-
-    // Get the game board
-    auto game = GameManager::getInstance().getGame(gameId);
-    std::string gameBoard = game->getBoardString();
-
-    // Prepare notification message
-    std::string gameStartMsg = "Game " + std::to_string(gameId) + " started: " +
-                               blackPlayer->getUsername() + " (Black) vs " +
-                               whitePlayer->getUsername() + " (White)";
-
-    // Send notification and board to opponent
-    SocketUtils::sendData(opponent->getSocket(), gameStartMsg + "\r\n\n" + gameBoard + "\r\n");
-
-    // Return notification and board to current user
-    return gameStartMsg + "\n\n" + gameBoard;
-}
-// Resign from the current game
-std::string resignGame() {
-    auto currentUser = UserManager::getInstance().getUserByUsername(username);
-    if (!currentUser->isInGame()) {
-        return "You are not in a game.";
-    }
-
-    int gameId = currentUser->getGameId();
-    auto game = GameManager::getInstance().getGame(gameId);
-    if (!game) {
-        currentUser->setPlaying(false);
-        currentUser->setGameId(-1);
-        return "Error: Game not found.";
-    }
-
-    game->resign(currentUser);
-
-    // Send notification to opponent
-    std::shared_ptr<User> opponent;
-    if (game->getBlackPlayer()->getUsername() == username) {
-        opponent = game->getWhitePlayer();
-    } else {
-        opponent = game->getBlackPlayer();
-    }
-
-    std::string resignMsg = username + " has resigned the game.";
-    SocketUtils::sendData(opponent->getSocket(), resignMsg + "\r\n");
-
-    // Notify observers
-    for (int observerSocket : game->getObservers()) {
-        SocketUtils::sendData(observerSocket, resignMsg + "\r\n");
-    }
-
-    return "You have resigned the game.";
-}
-
-// Refresh the current game board
-std::string refreshGame() {
-    auto currentUser = UserManager::getInstance().getUserByUsername(username);
-    if (!currentUser->isInGame() && !currentUser->isUserObserving()) {
-        return "You are not in or observing a game.";
-    }
-
-    int gameId = currentUser->getGameId();
-    auto game = GameManager::getInstance().getGame(gameId);
-    if (!game) {
-        currentUser->setPlaying(false);
         currentUser->setObserving(false);
         currentUser->setGameId(-1);
-        return "Error: Game not found.";
+
+        return "You are no longer observing the game.";
     }
-
-    return game->getBoardString();
-}
-
-// Observe a game
-std::string observeGame(int gameId) {
-    auto currentUser = UserManager::getInstance().getUserByUsername(username);
-    if (currentUser->isInGame()) {
-        return "You cannot observe while playing a game.";
-    }
-
-    auto game = GameManager::getInstance().getGame(gameId);
-    if (!game) {
-        return "Game not found: " + std::to_string(gameId);
-    }
-
-    // If already observing a different game, unobserve first
-    if (currentUser->isUserObserving()) {
-        auto oldGame = GameManager::getInstance().getGame(currentUser->getGameId());
-        if (oldGame) {
-            oldGame->removeObserver(clientSocket);
-        }
-    }
-
-    // Add as observer
-    game->addObserver(clientSocket);
-    currentUser->setObserving(true);
-    currentUser->setGameId(gameId);
-
-    return "You are now observing game " + std::to_string(gameId) + ".\n\n" + game->getBoardString();
-}
-
-// Stop observing a game
-std::string unobserveGame() {
-    auto currentUser = UserManager::getInstance().getUserByUsername(username);
-    if (!currentUser->isUserObserving()) {
-        return "You are not observing any game.";
-    }
-
-    int gameId = currentUser->getGameId();
-    auto game = GameManager::getInstance().getGame(gameId);
-    if (game) {
-        game->removeObserver(clientSocket);
-    }
-
-    currentUser->setObserving(false);
-    currentUser->setGameId(-1);
-
-    return "You are no longer observing the game.";
-}
 
     std::string makeMove(int row, int col) {
     auto currentUser = UserManager::getInstance().getUserByUsername(username);
@@ -435,12 +413,12 @@ std::string unobserveGame() {
         return "Error: Game not found.";
     }
 
-    // Check if game is already finished
+    // Check if game is finished
     if (game->getStatus() == GameStatus::FINISHED) {
         return "This game is already over. The winner was " + game->getWinner() + ".";
     }
 
-    // Check if it's this player's turn before trying to make a move
+    // Check if it's this player's turn
     bool isBlack = (currentUser->getUsername() == game->getBlackPlayer()->getUsername());
     bool isWhite = (currentUser->getUsername() == game->getWhitePlayer()->getUsername());
     bool isBlackTurn = (game->getCurrentTurn() == StoneColor::BLACK);
@@ -454,12 +432,10 @@ std::string unobserveGame() {
         return "Invalid move: that position is already occupied.";
     }
 
-    // Now try to make the move
     if (!game->makeMove(currentUser, row, col)) {
         return "Invalid move: an unexpected error occurred.";
     }
 
-    // Get the opponent
     std::shared_ptr<User> opponent;
     if (game->getBlackPlayer()->getUsername() == username) {
         opponent = game->getWhitePlayer();
@@ -467,7 +443,7 @@ std::string unobserveGame() {
         opponent = game->getBlackPlayer();
     }
 
-    // Create move notification message
+    // Create notification message
     char colChar = 'A' + col;
     std::string moveMsg = username + " played at " + colChar + std::to_string(row + 1);
     std::string boardStr = game->getBoardString();
@@ -488,7 +464,6 @@ std::string unobserveGame() {
         return boardStr + "\n" + winMsg;
     }
 
-    // Game continues - notify opponent about the move
     SocketUtils::sendData(opponent->getSocket(), moveMsg + "\r\n\n" + boardStr + "\r\n");
 
     // Notify observers
@@ -499,7 +474,6 @@ std::string unobserveGame() {
     return boardStr;
 }
 
-    // Add these methods to your TelnetClientHandler class
 
 // Broadcast a message to all online users
 std::string shoutMessage(const std::string& message) {
@@ -507,7 +481,6 @@ std::string shoutMessage(const std::string& message) {
         return "Guests cannot shout messages. Please register an account.";
     }
 
-    // Format: [Shout] <username>: <message>
     std::string formattedMsg = "[Shout] " + username + ": " + message;
 
     // Send to all online users except those in quiet mode or who blocked this user
@@ -539,7 +512,6 @@ std::string tellMessage(const std::string& recipient, const std::string& message
         return recipient + " has blocked messages from you.";
     }
 
-    // Format: [Tell] <username>: <message>
     std::string formattedMsg = "[Tell] " + username + ": " + message;
 
     // Send to recipient if online
@@ -566,7 +538,6 @@ std::string kibitzMessage(const std::string& message) {
         return "Error: Game not found.";
     }
 
-    // Format: [Kibitz] <username>: <message>
     std::string formattedMsg = "[Kibitz] " + username + ": " + message;
 
     // Send to all observers of this game
@@ -779,11 +750,9 @@ std::string sendMail(const std::string& recipient, const std::string& title) {
             return "Empty command";
         }
 
-        // Get the base command (first token)
         std::string cmd = tokens[0];
-        // Convert to lowercase for case-insensitive comparison
         std::transform(cmd.begin(), cmd.end(), cmd.begin(), ::tolower);
-        std::string cmdStr = cmd;  // Assuming cmd is already a std::string
+        std::string cmdStr = cmd;
         if (std::regex_match(cmdStr, moveAttemptMatches, moveAttemptPattern)) {
             auto currentUser = UserManager::getInstance().getUserByUsername(username);
             if (!currentUser->isInGame()) {
@@ -803,14 +772,12 @@ std::string sendMail(const std::string& recipient, const std::string& title) {
                 return "Invalid move: out of bounds. The board is 15x15 (A1 to O15).";
             }
 
-            // If we get here, it's a valid format move, process it
             row = row - 1; // Convert to 0-based
             int col = colChar - 'A';
 
             return makeMove(row, col);
         }
 
-        // Process login-related commands regardless of login status
         if (cmd == "login") {
             if (tokens.size() < 3) {
                 return "Usage: login <username> <password>";
@@ -821,7 +788,6 @@ std::string sendMail(const std::string& recipient, const std::string& title) {
             return setQuietMode(true);
         }
         else if (cmd == "info") {
-            // Extract everything after "info "
             size_t cmdPos = command.find("info");
             if (cmdPos == std::string::npos || cmdPos + 5 >= command.length()) {
                 return "Usage: info <message>";
@@ -871,7 +837,6 @@ std::string sendMail(const std::string& recipient, const std::string& title) {
 
             std::string recipient = tokens[1];
 
-            // Extract title (everything after the recipient)
             std::string title = command.substr(command.find(recipient) + recipient.length() + 1);
 
             return sendMail(recipient, title);
@@ -952,11 +917,9 @@ std::string sendMail(const std::string& recipient, const std::string& title) {
             return "Please login first using 'login <username> <password>' or 'guest'.";
         }
 
-        // Process commands for logged-in users
         if (cmd == "who") {
             return UserManager::getInstance().getOnlineUsersList();
         }
-        // In processCommand method, add:
         else if (cmd == "shout") {
             std::string message = command.substr(command.find(' ') + 1);
 
@@ -967,22 +930,18 @@ std::string sendMail(const std::string& recipient, const std::string& title) {
             return shoutMessage(message);
         }
         else if (cmd == "tell") {
-            // Check if there's anything after "tell"
             size_t cmdPos = command.find("tell");
             if (cmdPos == std::string::npos || cmdPos + 5 >= command.length()) {
                 return "Usage: tell <name> <message>";
             }
 
-            // Extract everything after "tell "
             std::string rest = command.substr(cmdPos + 5);
 
-            // Find the first space after the recipient name
             size_t spacePos = rest.find_first_of(" \t");
             if (spacePos == std::string::npos) {
                 return "Usage: tell <name> <message>";
             }
 
-            // Extract recipient and message
             std::string recipient = rest.substr(0, spacePos);
             std::string message = rest.substr(spacePos + 1);
 
@@ -1009,7 +968,6 @@ std::string sendMail(const std::string& recipient, const std::string& title) {
             }
         }
         else if (cmd == "info") {
-            // Combine remaining tokens into the info string
             std::string info;
             for (size_t i = 1; i < tokens.size(); i++) {
                 info += tokens[i] + " ";
@@ -1022,8 +980,6 @@ std::string sendMail(const std::string& recipient, const std::string& title) {
             }
             return changePassword(tokens[1]);
         }
-        // Other command handlers will be added here...
-
         // Unknown command
         return "Unknown command: " + cmd + ". Type 'help' or '?' for a list of commands.";
     }
@@ -1053,7 +1009,6 @@ std::string sendMail(const std::string& recipient, const std::string& title) {
 
         if (UserManager::getInstance().registerUser(username, password, clientSocket)) {
             this->username = username;
-            // UserManager will now automatically save users after registration
             return "Registration successful. You are now logged in as " + username + ".";
         } else {
             return "Registration failed. Username already exists or is invalid.";
@@ -1097,7 +1052,6 @@ std::string sendMail(const std::string& recipient, const std::string& title) {
     }
 
     // Change password
-    // Change password
     std::string changePassword(const std::string& newPassword) {
         if (username == "guest") {
             return "Guests cannot change password. Please register an account.";
@@ -1109,7 +1063,7 @@ std::string sendMail(const std::string& recipient, const std::string& title) {
         }
 
         currentUser->setPassword(newPassword);
-        UserManager::getInstance().saveUsers(); // Explicitly save after password change
+        UserManager::getInstance().saveUsers();
 
         return "Your password has been changed.";
     }
