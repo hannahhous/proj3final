@@ -692,100 +692,100 @@ std::string kibitzMessage(const std::string& message) {
         return "Unblocked communication from " + targetUsername + ".";
     }
     // List mail headers
-std::string listMail() {
-    if (username == "guest") {
-        return "Guests cannot use mail. Please register an account.";
-    }
-
-    auto messages = MessageManager::getInstance().getMessages(username);
-
-    if (messages.empty()) {
-        return "Your mailbox is empty.";
-    }
-
-    std::string result = "Mail messages:\n";
-    for (const auto& message : messages) {
-        result += message->getFormattedHeader() + "\n";
-    }
-
-    return result;
-}
-
-// Read a specific mail
-std::string readMail(int messageId) {
-    if (username == "guest") {
-        return "Guests cannot use mail. Please register an account.";
-    }
-
-    auto message = MessageManager::getInstance().getMessage(username, messageId);
-
-    if (!message) {
-        return "Message not found.";
-    }
-
-    // Mark as read and save
-    MessageManager::getInstance().markMessageAsRead(username, messageId);
-
-    std::string result = "From: " + message->getSender() + "\n";
-    result += "Title: " + message->getTitle() + "\n";
-    result += "---\n";
-    result += message->getContent() + "\n";
-    result += "---\n";
-
-    return result;
-}
-// Delete a mail
-std::string deleteMail(int messageId) {
-    if (username == "guest") {
-        return "Guests cannot use mail. Please register an account.";
-    }
-
-    if (MessageManager::getInstance().deleteMessage(username, messageId)) {
-        return "Message deleted.";
-    } else {
-        return "Message not found.";
-    }
-}
-
-// Send a mail
-std::string sendMail(const std::string& recipient, const std::string& title) {
-    if (username == "guest") {
-        return "Guests cannot use mail. Please register an account.";
-    }
-
-    auto recipientUser = UserManager::getInstance().getUserByUsername(recipient);
-    if (!recipientUser) {
-        return "User not found: " + recipient;
-    }
-
-    sendMessage("Enter your message. End with a line containing only a period (.)");
-
-    std::string content;
-    std::string line;
-    while (true) {
-        line = SocketUtils::receiveData(clientSocket, 60000); // 1 minute timeout
-
-        // Clean up line endings
-        if (!line.empty() && line.back() == '\n') line.pop_back();
-        if (!line.empty() && line.back() == '\r') line.pop_back();
-
-        if (line == ".") {
-            break;
+    std::string listMail() {
+        if (username == "guest") {
+            return "Guests cannot use mail. Please register an account.";
         }
 
-        content += line + "\n";
+        auto messages = MessageManager::getInstance().getMessages(username);
+
+        if (messages.empty()) {
+            return "Your mailbox is empty.";
+        }
+
+        std::string result = "Mail messages:\n";
+        for (const auto& message : messages) {
+            result += message->getFormattedHeader() + "\n";
+        }
+
+        return result;
     }
 
-    MessageManager::getInstance().sendMessage(username, recipient, title, content);
+    // Read a specific mail
+    std::string readMail(int messageId) {
+        if (username == "guest") {
+            return "Guests cannot use mail. Please register an account.";
+        }
 
-    // Notify recipient if online
-    if (recipientUser->getSocket() != -1) {
-        std::string notifyMsg = "You have received a new mail from " + username;
-        SocketUtils::sendData(recipientUser->getSocket(), notifyMsg + "\r\n");
+        auto message = MessageManager::getInstance().getMessage(username, messageId);
+
+        if (!message) {
+            return "Message not found.";
+        }
+
+        // Mark as read and save
+        MessageManager::getInstance().markMessageAsRead(username, messageId);
+
+        std::string result = "From: " + message->getSender() + "\n";
+        result += "Title: " + message->getTitle() + "\n";
+        result += "---\n";
+        result += message->getContent() + "\n";
+        result += "---\n";
+
+        return result;
     }
 
-    return "Mail sent to " + recipient;
-}
+    // Delete a mail
+    std::string deleteMail(int messageId) {
+        if (username == "guest") {
+            return "Guests cannot use mail. Please register an account.";
+        }
+
+        if (MessageManager::getInstance().deleteMessage(username, messageId)) {
+            return "Message deleted.";
+        } else {
+            return "Message not found.";
+        }
+    }
+
+    // Send  mail
+    std::string sendMail(const std::string& recipient, const std::string& title) {
+        if (username == "guest") {
+            return "Guests cannot use mail. Please register an account.";
+        }
+
+        auto recipientUser = UserManager::getInstance().getUserByUsername(recipient);
+        if (!recipientUser) {
+            return "User not found: " + recipient;
+        }
+
+        sendMessage("Enter your message. End with a line containing only a period (.)");
+
+        std::string content;
+        std::string line;
+        while (true) {
+            line = SocketUtils::receiveData(clientSocket, 60000);
+
+            if (!line.empty() && line.back() == '\n') line.pop_back();
+            if (!line.empty() && line.back() == '\r') line.pop_back();
+
+            if (line == ".") {
+                break;
+            }
+
+            content += line + "\n";
+        }
+
+        MessageManager::getInstance().sendMessage(username, recipient, title, content);
+
+        // Notify recipient if online
+        if (recipientUser->getSocket() != -1) {
+            std::string notifyMsg = "You have received a new mail from " + username;
+            SocketUtils::sendData(recipientUser->getSocket(), notifyMsg + "\r\n");
+        }
+
+        return "Mail sent to " + recipient;
+    }
     // Update user info
     std::string setUserInfo(const std::string& info) {
         if (username == "guest") {
@@ -1138,6 +1138,7 @@ std::string sendMail(const std::string& recipient, const std::string& title) {
 
 };
 
+// for match invitations
 std::unordered_map<std::string, TelnetClientHandler::MatchInvitation> TelnetClientHandler::pendingInvitations;
 
 

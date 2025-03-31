@@ -114,7 +114,7 @@ public:
             clients.clear();
         }
 
-        // Save user data before stopping
+        // Save user data and messages before stopping
         std::cout << "Saving user data before server shutdown" << std::endl;
         UserManager::getInstance().saveUsers();
         std::cout << "User data saved successfully" << std::endl;

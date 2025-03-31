@@ -80,7 +80,7 @@ public:
 
         userMessages[recipient].push_back(message);
 
-        // Save messages after each new message
+        // Save messages
         saveMessages();
     }
 
@@ -157,7 +157,7 @@ public:
 
             int messageCount = 0;
 
-            // Write each user's messages
+            // Write each message
             for (const auto& pair : userMessages) {
                 const std::string& recipient = pair.first;
                 const auto& messages = pair.second;
@@ -172,7 +172,6 @@ public:
                     file << "read=" << (message->isRead() ? "1" : "0") << "\n";
                     file << "content_begin\n";
                     file << message->getContent();
-                    // Add a newline if the content doesn't end with one
                     if (!message->getContent().empty() && message->getContent().back() != '\n') {
                         file << "\n";
                     }
@@ -214,7 +213,6 @@ public:
             bool inContentSection = false;
             bool inMessageSection = false;
 
-            // Track the highest message ID to set nextMessageId properly
             int highestId = 0;
 
             while (std::getline(file, line)) {
@@ -229,7 +227,7 @@ public:
                 }
                 else if (line == "MESSAGE_END") {
                     if (inMessageSection && id > 0 && !sender.empty() && !recipient.empty()) {
-                        // Create message and add to the appropriate user's inbox
+                        // Create message
                         auto message = std::make_shared<Message>(id, sender, recipient, title, content);
 
                         // Set read status and timestamp
@@ -240,7 +238,6 @@ public:
                         // Add to the recipient's messages
                         userMessages[recipient].push_back(message);
 
-                        // Track highest ID
                         highestId = std::max(highestId, id);
 
                         std::cout << "Loaded message " << id << " from " << sender << " to " << recipient << std::endl;
@@ -264,7 +261,6 @@ public:
                         content += line + "\n";
                     }
                     else {
-                        // Parse key-value pairs
                         size_t equalPos = line.find('=');
                         if (equalPos != std::string::npos) {
                             std::string key = line.substr(0, equalPos);
@@ -289,7 +285,6 @@ public:
 
             file.close();
 
-            // Set the next message ID to be one higher than the highest loaded
             if (highestId >= nextMessageId) {
                 nextMessageId = highestId + 1;
             }

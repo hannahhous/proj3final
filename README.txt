@@ -17,7 +17,6 @@ Assumptions:
     - Network interruptions lasting longer than the socket timeout will result in connection loss
     - Users can only play or observe one game at a time
     - Usernames are unique and case-sensitive
-    - Mail is not included in saved user information when a server crashes due to space constraints
 
 
 All work in this assignment was performed solely by Hannah Housand.
