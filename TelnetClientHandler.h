@@ -118,7 +118,18 @@ private:
 
         if (UserManager::getInstance().loginUser(username, password, clientSocket)) {
             this->username = username;
-            return "Login successful. Welcome, " + username + "!";
+
+            // Check for unread messages
+            int unreadCount = MessageManager::getInstance().countUnreadMessages(username);
+            std::string loginMsg = "Login successful. Welcome, " + username + "!";
+
+            if (unreadCount > 0) {
+                loginMsg += "\nYou have " + std::to_string(unreadCount) + " unread messages. Use 'listmail' to view them.";
+            }
+
+            sendMessage(loginMsg);
+
+            return "";
         } else {
             return "Login failed. Invalid username or password.";
         }
@@ -712,7 +723,8 @@ std::string readMail(int messageId) {
         return "Message not found.";
     }
 
-    message->markAsRead();
+    // Mark as read and save
+    MessageManager::getInstance().markMessageAsRead(username, messageId);
 
     std::string result = "From: " + message->getSender() + "\n";
     result += "Title: " + message->getTitle() + "\n";
@@ -722,7 +734,6 @@ std::string readMail(int messageId) {
 
     return result;
 }
-
 // Delete a mail
 std::string deleteMail(int messageId) {
     if (username == "guest") {

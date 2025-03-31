@@ -119,6 +119,10 @@ public:
         UserManager::getInstance().saveUsers();
         std::cout << "User data saved successfully" << std::endl;
 
+        std::cout << "Saving message data before server shutdown" << std::endl;
+        MessageManager::getInstance().saveMessages();
+        std::cout << "Message data saved successfully" << std::endl;
+
         if (serverSocket >= 0)
         {
             close(serverSocket);
@@ -191,8 +195,13 @@ private:
 
     void cleanupGames()
     {
+        // Save messages every 5 minutes (300 seconds)
+        const int SAVE_INTERVAL = 300;
+        time_t lastSaveTime = time(nullptr);
         while (running)
         {
+            time_t currentTime = time(nullptr);
+
             // Clean up finished games
             GameManager::getInstance().cleanupGames();
 
@@ -211,6 +220,13 @@ private:
                         ++it;
                     }
                 }
+            }
+
+            // Periodically save messages
+            if (currentTime - lastSaveTime >= SAVE_INTERVAL) {
+                std::cout << "Periodic message save..." << std::endl;
+                MessageManager::getInstance().saveMessages();
+                lastSaveTime = currentTime;
             }
 
             // Sleep for a while
