@@ -213,7 +213,7 @@ bool Game::isPositionEmpty(int row, int col) const {
     return board[row][col] == '.';
 }
 
-bool Game::checkWin(int row, int col) { // Also used AI for this because I was a tiny bit confued with Gomuko rules
+bool Game::checkWin(int row, int col) {
     char stone = board[row][col];
     const int directions[4][2] = {{0, 1}, {1, 0}, {1, 1}, {1, -1}}; // horizontal, vertical, diagonal \, diagonal /
 

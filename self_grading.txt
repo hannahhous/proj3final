@@ -1,0 +1,119 @@
+
+            COP5570 Project No.3 Self Grading Sheet
+
+
+Name: Hannah Housand                      FSU login: hjh21a
+
+----------------------------------------------------------------------------
+
+README/Makefile/Demo (5)
+                                 __5___                 ________
+
+
+register (5)
+                                 ___5__                 ________
+
+
+exit, quit (2)
+                                 ___2__                 ________
+
+
+tell (5)
+                                 __5___                 ________
+
+
+shout (5)
+                                 ___5__                 ________
+
+
+help, ?    (2)
+                                 __2___                 ________
+
+
+who (5)
+                                 ___5__                 ________
+
+
+stats (5)
+                                 __5___                 ________
+
+
+block, unblock (5)
+                                 ___5__                 ________
+
+
+quiet, nonquiet (5)
+                                 __5___                 ________
+
+
+listmail (5)
+                                 __5___                 ________
+                - it wasn't clear in the instructions to me whether mail should be saved
+                for eahc user when the server stop so I assumed no
+
+
+mail/readmail (5)
+                                 __5___                 ________
+
+
+deletemail (5)
+                                 __5___                 ________
+
+
+match (5)
+                                 __5___                 ________
+
+
+observe, unobserve (5)
+                                 ___5__                 ________
+
+
+resign (5)
+                                 ___5__                 ________
+
+
+game (5)
+                                 ___5__                 ________
+
+
+kibitz ('), refresh (5)
+                                 __5___                 ________
+
+
+game play (move, time) (10)
+                                 __10___                 ________
+
+
+info, passwd (5)
+                                 ___5__                 ________
+
+
+overall
+(disconnect, all combined) (6)
+                                 __6___                 ________
+
+
+compiler warning (-5 each)
+
+                                 ___0__                 ________
+
+
+Third Unknown Error (-15)
+                                 __0___                  ________
+
+
+Third known Feature (-8)
+                                 __0___                  ________
+
+
+Blackjack (+25)
+                                 ___0__                  ________
+
+
+Gomoku Robot (+15)
+                                 __0___                  ________
+
+
+Final Grade
+
+                                 __105?___                  ________
