@@ -5,7 +5,7 @@
 #include <sstream>
 #include <vector>
 #include <algorithm>
-//#include "UserManager.h"
+#include "UserManager.h"
 #include "Game.h"
 #include "Message.h"
 #include <regex>
@@ -1111,6 +1111,7 @@ std::string sendMail(const std::string& recipient, const std::string& title) {
     }
 
     // Change password
+    // Change password
     std::string changePassword(const std::string& newPassword) {
         if (username == "guest") {
             return "Guests cannot change password. Please register an account.";
@@ -1122,7 +1123,6 @@ std::string sendMail(const std::string& recipient, const std::string& title) {
         }
 
         currentUser->setPassword(newPassword);
-        UserManager::getInstance().saveUsers(); // Explicitly save after password change
         return "Your password has been changed.";
     }
 
