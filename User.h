@@ -10,6 +10,7 @@
 #include <filesystem>
 #include <iostream>
 #include <thread>
+#include <atomic>
 
 class User {
 private:
